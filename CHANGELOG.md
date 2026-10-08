@@ -6,6 +6,8 @@ All notable changes to McDownloader are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-08
+
 ### Added
 
 - Browser extension now connects through a Native Messaging host, so there is no
