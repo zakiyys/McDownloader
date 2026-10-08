@@ -71,6 +71,7 @@ for arch in "${ARCHS[@]}"; do
       --disable-nls \
       --disable-ldap \
       --disable-bittorrent \
+      --without-libssh2 \
       --without-gnutls \
       --without-openssl \
       --with-appletls \

@@ -37,7 +37,7 @@ jobs:
           path: |
             build-torrent/vcpkg
             build-torrent/vcpkg_installed
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('ci/vcpkg.json') }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('scripts/build-libtorrent-universal.sh') }}
       - name: Build libtorrent helper (static, universal)
         run: |
           chmod +x scripts/build-libtorrent-universal.sh

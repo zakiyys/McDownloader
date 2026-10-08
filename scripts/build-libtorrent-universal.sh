@@ -3,8 +3,10 @@
 #
 # libtorrent drags in Boost and OpenSSL, so we let vcpkg resolve and build the
 # dependencies per architecture, then lipo the two helper binaries together.
-# Everything happens on the GitHub macOS runner; nothing is installed on a
-# user's machine.
+# We use vcpkg's stock `arm64-osx` / `x64-osx` triplets (static by default) and
+# build release only, which halves the OpenSSL build and avoids the debug
+# configuration entirely. Everything happens on the GitHub macOS runner;
+# nothing is installed on a user's machine.
 #
 # Output: $OUT_DIR/mcdownloader-torrentd  (universal)
 set -euo pipefail
@@ -23,8 +25,8 @@ if [[ ! -d "$VCPKG_ROOT" ]]; then
 fi
 "$VCPKG_ROOT"/bootstrap-vcpkg.sh -disableMetrics
 
-# Make the repo's static triplets visible to vcpkg in classic mode.
-export VCPKG_OVERLAY_TRIPLETS="$REPO_ROOT/ci/triplets"
+# Release only: OpenSSL's debug build is slow and unnecessary for a shipped helper.
+export VCPKG_BUILD_TYPE=release
 export VCPKG_DISABLE_METRICS=1
 
 build_arch() {
@@ -43,14 +45,13 @@ build_arch() {
     -DMCD_VERSION="$VERSION" \
     -DBUILD_SHARED_LIBS=OFF \
     -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
-    -DVCPKG_TARGET_TRIPLET="$triplet" \
-    -DVCPKG_OVERLAY_TRIPLETS="$VCPKG_OVERLAY_TRIPLETS"
+    -DVCPKG_TARGET_TRIPLET="$triplet"
   cmake --build "$build_dir" --config Release -j"$(sysctl -n hw.ncpu)"
   cp "$build_dir/mcdownloader-torrentd" "$WORK/torrentd-$arch"
 }
 
-build_arch arm64-osx-static arm64
-build_arch x64-osx-static x86_64
+build_arch arm64-osx arm64
+build_arch x64-osx x86_64
 
 echo "==== lipo ===="
 lipo -create -output "$OUT_DIR/mcdownloader-torrentd" "$WORK/torrentd-arm64" "$WORK/torrentd-x86_64"
