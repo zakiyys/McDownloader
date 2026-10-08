@@ -26,7 +26,7 @@ struct PawMark: View {
             silhouette
                 .fill(color)
             silhouette
-                .stroke(color, style: StrokeStyle(lineWidth: union, lineJoin: .round, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: union, lineCap: .round, lineJoin: .round))
 
             // A soft inset in the toes and pad, so the paw keeps its shape at
             // small sizes instead of reading as a solid blob. One fill, so
