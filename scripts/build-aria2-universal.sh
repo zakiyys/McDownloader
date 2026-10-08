@@ -43,16 +43,15 @@ for arch in "${ARCHS[@]}"; do
   mkdir -p "$PREFIX" "$BUILD"
 
   if [[ "$arch" == "x86_64" ]]; then
-    export CFLAGS="-arch x86_64 -O2 -mmacosx-version-min=14.0"
-    export CXXFLAGS="-arch x86_64 -O2 -mmacosx-version-min=14.0"
-    export LDFLAGS="-arch x86_64 -mmacosx-version-min=14.0"
-    HOST="x86_64-apple-darwin"
+    CONFIGURE_HOST="x86_64-apple-darwin"
+    OPENSSL_TARGET="darwin64-x86_64-cc"
   else
-    export CFLAGS="-arch arm64 -O2 -mmacosx-version-min=14.0"
-    export CXXFLAGS="-arch arm64 -O2 -mmacosx-version-min=14.0"
-    export LDFLAGS="-arch arm64 -mmacosx-version-min=14.0"
-    HOST="arm-apple-darwin"
+    CONFIGURE_HOST="aarch64-apple-darwin"
+    OPENSSL_TARGET="darwin64-arm64-cc"
   fi
+  export CFLAGS="-arch $arch -O2 -mmacosx-version-min=14.0"
+  export CXXFLAGS="-arch $arch -O2 -mmacosx-version-min=14.0"
+  export LDFLAGS="-arch $arch -mmacosx-version-min=14.0"
 
   echo "==== zlib ($arch) ===="
   tar xzf "$WORK/zlib.tar.gz" -C "$BUILD"
@@ -60,37 +59,41 @@ for arch in "${ARCHS[@]}"; do
 
   echo "==== expat ($arch) ===="
   tar xzf "$WORK/expat.tar.gz" -C "$BUILD"
-  ( cd "$BUILD/expat-${EXPAT_VERSION}" && ./configure --disable-shared --enable-static --prefix="$PREFIX" && make -j"$(sysctl -n hw.ncpu)" && make install )
+  ( cd "$BUILD/expat-${EXPAT_VERSION}" && ./configure --disable-shared --enable-static --prefix="$PREFIX" --host="$CONFIGURE_HOST" && make -j"$(sysctl -n hw.ncpu)" && make install )
 
   echo "==== c-ares ($arch) ===="
   tar xzf "$WORK/cares.tar.gz" -C "$BUILD"
-  ( cd "$BUILD/c-ares-${CARES_VERSION}" && ./configure --disable-shared --enable-static --prefix="$PREFIX" && make -j"$(sysctl -n hw.ncpu)" && make install )
+  ( cd "$BUILD/c-ares-${CARES_VERSION}" && ./configure --disable-shared --enable-static --prefix="$PREFIX" --host="$CONFIGURE_HOST" && make -j"$(sysctl -n hw.ncpu)" && make install )
 
   echo "==== openssl ($arch) ===="
   tar xzf "$WORK/openssl.tar.gz" -C "$BUILD"
-  ( cd "$BUILD/openssl-${OPENSSL_VERSION}" && ./Configure "$HOST" no-shared no-tests --prefix="$PREFIX" && make -j"$(sysctl -n hw.ncpu)" && make install_sw )
+  # OpenSSL's Configure wants options first and the target LAST.
+  ( cd "$BUILD/openssl-${OPENSSL_VERSION}" && \
+    perl ./Configure no-shared no-tests \
+      --prefix="$PREFIX" --openssldir="$PREFIX/ssl" \
+      "$OPENSSL_TARGET" && \
+    make -j"$(sysctl -n hw.ncpu)" && \
+    make install_sw )
 
   echo "==== aria2 ($arch) ===="
   tar xzf "$WORK/aria2.tar.gz" -C "$BUILD"
   ( cd "$BUILD/aria2-${ARIA2_VERSION}" && \
     ./configure \
       --prefix="$PREFIX" \
-      --host="$HOST" \
+      --host="$CONFIGURE_HOST" \
       --disable-nls \
       --disable-ldap \
       --disable-bittorrent \
       --without-gnutls \
       --with-openssl \
       --with-libexpat \
-      --with-libcares \
       --without-libxml2 \
       --without-sqlite3 \
       --enable-static \
       --disable-shared \
-      ARIA2_STATIC=yes \
       PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig" \
       CPPFLAGS="-I$PREFIX/include" \
-      LDFLAGS="-L$PREFIX/lib -arch ${arch} -mmacosx-version-min=14.0" && \
+      LDFLAGS="-L$PREFIX/lib -arch $arch -mmacosx-version-min=14.0" && \
     make -j"$(sysctl -n hw.ncpu)" )
   cp "$BUILD/aria2-${ARIA2_VERSION}/src/aria2c" "$WORK/aria2c-$arch"
 done

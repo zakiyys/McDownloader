@@ -60,3 +60,26 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Shellcheck all scripts
         run: shellcheck -S warning scripts/*.sh
+
+  torrent-helper:
+    name: Compile torrent helper (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libtorrent and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ cmake pkg-config libtorrent-rasterbar-dev
+      - name: Configure
+        run: cmake -S TorrentHelper -B build-linux -DCMAKE_BUILD_TYPE=Release -DMCD_VERSION=0.0.0-ci
+      - name: Build
+        run: cmake --build build-linux -j"$(nproc)"
+      - name: Smoke-test the RPC surface
+        run: |
+          ./build-linux/mcdownloader-torrentd --port=6851 --secret=test --save-path=/tmp --state-dir=/tmp/tdstate &
+          sleep 3
+          curl -s -X POST http://127.0.0.1:6851/jsonrpc \
+            -d '{"jsonrpc":"2.0","id":"1","method":"torrent.version","params":["token:test"]}' | tee /dev/stderr | grep -q '"libtorrent"'
+          curl -s -X POST http://127.0.0.1:6851/jsonrpc \
+            -d '{"jsonrpc":"2.0","id":"2","method":"torrent.version","params":["token:wrong"]}' | grep -q 'invalid token'
+          echo "helper RPC ok"

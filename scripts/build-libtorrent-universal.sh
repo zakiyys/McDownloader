@@ -16,20 +16,23 @@ VCPKG_ROOT="${VCPKG_ROOT:-$WORK/vcpkg}"
 VCPKG_REF="${VCPKG_REF:-2024.09.30}"
 VERSION="${MCD_VERSION:-1.0.0}"
 
-TOOLCHAIN=""
 mkdir -p "$OUT_DIR" "$WORK"
 
 if [[ ! -d "$VCPKG_ROOT" ]]; then
   git clone --depth 1 --branch "$VCPKG_REF" https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
 fi
 "$VCPKG_ROOT"/bootstrap-vcpkg.sh -disableMetrics
-TOOLCHAIN="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+
+# Make the repo's static triplets visible to vcpkg in classic mode.
+export VCPKG_OVERLAY_TRIPLETS="$REPO_ROOT/ci/triplets"
+export VCPKG_DISABLE_METRICS=1
 
 build_arch() {
   local triplet="$1" arch="$2"
   echo "==== vcpkg dependencies ($triplet) ===="
   "$VCPKG_ROOT/vcpkg" install "libtorrent:$triplet" \
-    --clean-after-build --x-feature=core
+    --triplet "$triplet" \
+    --clean-after-build
 
   local build_dir="$WORK/build-$arch"
   rm -rf "$build_dir"
@@ -39,9 +42,9 @@ build_arch() {
     -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
     -DMCD_VERSION="$VERSION" \
     -DBUILD_SHARED_LIBS=OFF \
-    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
+    -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
     -DVCPKG_TARGET_TRIPLET="$triplet" \
-    -DVCPKG_OVERLAY_TRIPLETS="$REPO_ROOT/ci/triplets"
+    -DVCPKG_OVERLAY_TRIPLETS="$VCPKG_OVERLAY_TRIPLETS"
   cmake --build "$build_dir" --config Release -j"$(sysctl -n hw.ncpu)"
   cp "$build_dir/mcdownloader-torrentd" "$WORK/torrentd-$arch"
 }

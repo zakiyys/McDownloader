@@ -89,6 +89,7 @@ static std::string jsonEscape(const std::string& in) {
 }
 
 static std::string jstr(const std::string& s) { return "\"" + jsonEscape(s) + "\""; }
+static std::string jnum(int v) { return std::to_string(v); }
 static std::string jnum(int64_t v) { return std::to_string(v); }
 static std::string jnum(double v) {
     std::ostringstream os;
@@ -218,7 +219,16 @@ struct Engine {
 static Engine g_engine;
 
 static std::string hashHex(const lt::sha1_hash& h) {
-    return h.to_hex();
+    // sha1_hash stores 20 raw bytes; render them as lowercase hex.
+    static const char* digits = "0123456789abcdef";
+    std::string out;
+    out.reserve(40);
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(h.data());
+    for (int i = 0; i < 20; ++i) {
+        out.push_back(digits[bytes[i] >> 4]);
+        out.push_back(digits[bytes[i] & 0x0f]);
+    }
+    return out;
 }
 
 static std::string torrentId(const lt::torrent_handle& h) {
@@ -320,18 +330,19 @@ static std::string detailJson(const lt::torrent_handle& h) {
     // Peers
     std::string peers = "[";
     try {
-        std::vector<lt::peer_info> plist = h.get_peer_info();
+        std::vector<lt::peer_info> plist;
+        h.get_peer_info(plist);
         bool first = true;
         for (auto& p : plist) {
             if (!first) peers += ",";
             peers += "{";
-            peers += jstr("address") + ":" + jstr(p.ip.to_string()) + ",";
-            peers += jstr("port") + ":" + jnum(static_cast<int64_t>(p.port)) + ",";
+            peers += jstr("address") + ":" + jstr(p.ip.address().to_string()) + ",";
+            peers += jstr("port") + ":" + jnum(static_cast<int>(p.ip.port())) + ",";
             peers += jstr("client") + ":" + jstr(p.client) + ",";
             peers += jstr("downloadSpeed") + ":" + jnum(static_cast<int64_t>(p.down_speed)) + ",";
             peers += jstr("uploadSpeed") + ":" + jnum(static_cast<int64_t>(p.up_speed)) + ",";
             peers += jstr("progress") + ":" + jnum(static_cast<double>(p.progress)) + ",";
-            peers += jstr("flags") + ":" + jstr(std::string(p.flags.to_string()));
+            peers += jstr("flags") + ":" + jstr("");
             peers += "}";
             first = false;
         }
@@ -488,7 +499,7 @@ static std::string handleCommand(const RpcRequest& req) {
         if (args.size() > 1 && args[1].get("delete_files")) deleteFiles = args[1].get("delete_files")->asBool();
         for (auto& h : g_engine.session->get_torrents()) {
             if (torrentId(h) == args[0].asString()) {
-                g_engine.session->remove_torrent(h, deleteFiles ? lt::session::delete_files : 0);
+                g_engine.session->remove_torrent(h, deleteFiles ? lt::session::delete_files : lt::remove_flags_t{});
                 return okResponse(req.id, "true");
             }
         }
@@ -620,7 +631,10 @@ static void maintenanceLoop() {
     while (true) {
         std::this_thread::sleep_for(1s);
         std::lock_guard<std::mutex> lock(g_engine.mutex);
-        g_engine.session->pop_alerts();
+        {
+            std::vector<lt::alert*> drained;
+            g_engine.session->pop_alerts(&drained);
+        }
 
         // Enforce seeding limits.
         for (auto& h : g_engine.session->get_torrents()) {
@@ -652,7 +666,8 @@ static void alertLoop() {
     while (true) {
         std::this_thread::sleep_for(1s);
         std::lock_guard<std::mutex> lock(g_engine.mutex);
-        std::vector<lt::alert*> alerts = g_engine.session->pop_alerts();
+        std::vector<lt::alert*> alerts;
+        g_engine.session->pop_alerts(&alerts);
         for (lt::alert* alert : alerts) {
             if (auto* rd = lt::alert_cast<lt::save_resume_data_alert>(alert)) {
                 auto buffer = lt::write_resume_data_buf(rd->params);
