@@ -31,6 +31,12 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+      - name: Use CMake 3.29 (vcpkg 2024.09 ports misdetect the Apple sysroot under CMake 4)
+        run: |
+          curl -fsSL -o /tmp/cmake329.tar.gz \
+            https://github.com/Kitware/CMake/releases/download/v3.29.6/cmake-3.29.6-macos-universal.tar.gz
+          mkdir -p "$HOME/cmake329" && tar xzf /tmp/cmake329.tar.gz -C "$HOME/cmake329" --strip-components=1
+          echo "$HOME/cmake329/CMake.app/Contents/bin" >> "$GITHUB_PATH"
       - name: Cache vcpkg
         uses: actions/cache@v4
         with:
