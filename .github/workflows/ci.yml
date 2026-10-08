@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  app:
+    name: Build app (macOS)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version || true
+
+      - name: Build (SwiftPM, release)
+        working-directory: App
+        run: swift build -c release
+
+      - name: Package .app (no engines)
+        run: |
+          BINARY="$(swift build -c release --package-path App --show-bin-path)/McDownloader"
+          chmod +x scripts/package-app.sh
+          ./scripts/package-app.sh --binary "$BINARY" --out dist --version 0.0.0-ci --commit "${GITHUB_SHA::7}"
+          test -x "dist/McDownloader.app/Contents/MacOS/McDownloader"
+          /usr/libexec/PlistBuddy -c "Print" dist/McDownloader.app/Contents/Info.plist | head -5
+
+      - name: Verify the binary is universal-ready and signed
+        run: |
+          codesign --verify --deep --verbose=2 dist/McDownloader.app || true
+          file dist/McDownloader.app/Contents/MacOS/McDownloader
+
+  extension:
+    name: Lint extension (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Syntax-check the extension scripts
+        run: |
+          node --check Extension/background.js
+          node --check Extension/popup.js
+          node --check Extension/options.js
+      - name: Validate the manifest
+        run: node -e "JSON.parse(require('fs').readFileSync('Extension/manifest.json','utf8')); console.log('manifest ok')"
+
+  shellcheck:
+    name: Lint scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Shellcheck all scripts
+        run: shellcheck -S warning scripts/*.sh

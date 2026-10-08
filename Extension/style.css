@@ -1,0 +1,94 @@
+:root {
+  --bg: Canvas;
+  --fg: CanvasText;
+  --muted: color-mix(in srgb, CanvasText 60%, Canvas 40%);
+  --line: color-mix(in srgb, CanvasText 20%, Canvas 80%);
+  --accent: AccentColor;
+  --field: Field;
+  --field-text: FieldText;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.45 -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+
+.popup { width: 320px; }
+
+.popup-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.popup-header strong { display: block; font-size: 13px; }
+.popup-header p { margin: 2px 0 0; font-size: 11px; }
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: 0 0 auto;
+}
+.dot.ok { background: #34c759; }
+
+.popup-body { padding: 14px; display: grid; gap: 8px; }
+
+label { font-size: 11px; color: var(--muted); }
+
+input[type="text"], input[type="number"] {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--field);
+  color: var(--field-text);
+  font: inherit;
+}
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+button {
+  font: inherit;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+button:hover { background: color-mix(in srgb, CanvasText 6%, Canvas 94%); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+}
+.popup-footer a { color: var(--accent); text-decoration: none; }
+.popup-footer a:hover { text-decoration: underline; }
+
+.muted { color: var(--muted); }
+.small { font-size: 11px; }
+
+.options main { max-width: 460px; margin: 0 auto; padding: 24px; }
+.options h1 { font-size: 18px; margin: 0 0 4px; }
+.options fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 16px 0; }
+.options legend { padding: 0 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.options label { display: block; margin: 8px 0 4px; }
+.options label.checkbox { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.options .actions { display: flex; align-items: center; gap: 10px; }

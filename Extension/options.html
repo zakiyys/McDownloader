@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="options">
+  <main>
+    <h1>McDownloader extension</h1>
+    <p class="muted">
+      This extension sends downloads to the McDownloader app running on your Mac.
+      Nothing leaves your machine.
+    </p>
+
+    <form id="settings">
+      <fieldset>
+        <legend>Connection</legend>
+        <label for="port">App port</label>
+        <input id="port" type="number" min="1024" max="65535" />
+        <label for="token">App token</label>
+        <input id="token" type="text" placeholder="Copy it from McDownloader → Settings → Browser" autocomplete="off" />
+        <p class="muted small">The token is in the app under Settings, Browser tab.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Behaviour</legend>
+        <label class="checkbox">
+          <input id="enabled" type="checkbox" />
+          <span>Enable the extension</span>
+        </label>
+        <label class="checkbox">
+          <input id="intercept" type="checkbox" />
+          <span>Take over browser downloads automatically</span>
+        </label>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="primary">Save</button>
+        <button type="button" id="test">Test connection</button>
+        <span id="status" class="muted" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

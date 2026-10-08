@@ -1,0 +1,25 @@
+# Build & local artifacts
+.build/
+build/
+dist/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+.vendor/
+*.o
+*.a
+*.dSYM/
+*.dylib
+
+# Release output
+*.dmg
+*.pkg
+
+# macOS
+.DS_Store
+._*
+
+# Editor
+.vscode/
+.idea/
+*.swp

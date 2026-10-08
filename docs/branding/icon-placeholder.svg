@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="McDownloader placeholder icon">
+  <title>McDownloader placeholder icon</title>
+  <!--
+    PLACEHOLDER (DESIGN.md section 10). This is not final artwork.
+    A neutral squircle tile with the "McD" wordmark and a download arrow.
+    Replace with a real 1024x1024 icon when brand artwork exists.
+  -->
+  <rect x="48" y="48" width="416" height="416" rx="93" fill="#1c1c1e"/>
+  <rect x="48" y="48" width="416" height="416" rx="93" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+  <text x="256" y="300" font-family="-apple-system, 'SF Pro Display', Helvetica, Arial, sans-serif"
+        font-size="176" font-weight="600" fill="#ffffff" text-anchor="middle">McD</text>
+  <g stroke="#ffffff" stroke-opacity="0.92" stroke-width="18" stroke-linecap="round" fill="none">
+    <line x1="256" y1="330" x2="256" y2="392"/>
+    <polyline points="222,364 256,392 290,364"/>
+  </g>
+</svg>

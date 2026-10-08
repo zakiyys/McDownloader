@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "McDownloader",
+  "version": "1.0.0",
+  "description": "Hand downloads over to the McDownloader app, with cookies and referer, and refresh expired links.",
+  "permissions": ["downloads", "cookies", "storage", "contextMenus", "activeTab", "notifications"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "McDownloader"
+  },
+  "icons": {
+    "128": "icons/icon-128.png"
+  },
+  "minimum_chrome_version": "116"
+}
