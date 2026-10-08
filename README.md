@@ -1,97 +1,125 @@
+<div align="center">
+
+<img src="assets/icon.png" width="128" alt="McDownloader icon">
+
 # McDownloader
 
-A native macOS download manager that does two jobs in one window: accelerated
-HTTP/HTTPS downloads (multi-connection, resumable) and BitTorrent (magnet links
-and `.torrent` files). It is built for macOS 14 and later, on Apple Silicon and
-Intel, and it stays out of the way in the menu bar.
+**Fast downloads and torrents for macOS, in one clean little app.**
 
-> **Not affiliated with Internet Download Manager (IDM).** IDM is a proprietary
-> Windows product. McDownloader is an independent download manager inspired by
-> the same idea. It is not a port, crack, or repack of IDM.
+Multi-connection HTTP downloads and BitTorrent, living quietly in your menu bar.
 
-## Engines
+[![Latest release](https://img.shields.io/github/v/release/zakiyys/McDownloader?label=download&color=2ea44f)](https://github.com/zakiyys/McDownloader/releases/latest)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
+![Apple Silicon & Intel](https://img.shields.io/badge/Apple%20Silicon%20%26%20Intel-universal-blue)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-orange)](LICENSE)
 
-Two engines, one interface:
+<img src="assets/screenshot-main.png" width="820" alt="McDownloader main window">
 
-| Half | Engine | Why |
-|---|---|---|
-| HTTP / HTTPS / FTP | [aria2](https://aria2.github.io) (bundled, JSON-RPC) | Mature multi-connection engine, resume, queue, rate limits |
-| BitTorrent | [libtorrent](https://www.libtorrent.org) 2.x (bundled helper) | UPnP/NAT-PMP, DHT, uTP, pex, the same engine qBittorrent uses |
+</div>
 
-Both speak the same JSON-RPC shape, so the app treats them identically. Each runs
-in its own process: if one misbehaves, the other and the UI keep running.
+---
+
+## Why McDownloader?
+
+Safari and Chrome download one file over one connection. If it drops, you start over.
+McDownloader splits each file into several connections, resumes where it left off
+(even after a restart), and handles torrents too, so you never need two apps again.
 
 ## Features
 
-- Multi-connection HTTP downloads with resume, including across restarts.
-- BitTorrent with magnet links, `.torrent` files, per-file selection, seed
-  ratio/time limits, and public-tracker augmentation.
-- Browser extension (Chrome, Edge, Brave) that hands downloads to the app with
-  cookies and referer, so signed URLs keep working.
-- Opens `magnet:` links and `.torrent` files directly.
-- Prevent sleep while transfers run; optional sleep when the queue finishes.
-- Native completion notifications.
-- Downloaded files get the macOS quarantine attribute, so Gatekeeper still
-  checks `.app` and `.dmg` files.
-- Video grabbing via yt-dlp (installed on first use, not bundled).
+### ⚡ Faster downloads
+- **Multi-connection downloads** that pull a file in parallel pieces
+- **Pause and resume anytime**, even after quitting the app or restarting your Mac
+- **Download queue** with speed limits, so your Zoom call stays smooth
 
-## Download
+### 🧲 Built-in torrents
+- Open **magnet links** and **.torrent files** with a click
+- **Choose which files** to download inside a torrent
+- **Seeding limits** by ratio or time, so you share fairly without thinking about it
+- Fast peer discovery out of the box (DHT, UPnP, extra public trackers)
 
-Grab the latest `.dmg` or `.zip` from the
-[Releases](https://github.com/zakiyys/McDownloader/releases) page.
+### 🌐 Browser extension
+- One click sends downloads from **Chrome, Edge, or Brave** to McDownloader
+- Works with login-protected and expiring links, since your cookies come along
+- Talks only to the app on your own Mac. Nothing leaves your machine
 
-The app is **not notarized** (that needs a paid Apple Developer account), so on
-first launch macOS will show a warning. To open it:
+### 🎬 Video grabbing
+- Save videos from supported sites (powered by yt-dlp, set up automatically the first time you use it)
 
-1. Control-click the app, choose **Open**, then confirm **Open**.
-2. Or run once: `xattr -dr com.apple.quarantine /Applications/McDownloader.app`
+### 🍎 Feels like a Mac app
+- Lives in the **menu bar**, out of your way
+- **Native notifications** when downloads finish
+- **Keeps your Mac awake** while transferring, and can **put it to sleep** when the queue is done
+- Downloaded apps and disk images still get **checked by Gatekeeper**, just like Safari downloads
 
-## Build from source
+## Install
 
-Requires macOS 14+ with the Xcode command line tools (full Xcode is not needed
-for local building).
+1. Download the latest **`.dmg`** from [Releases](https://github.com/zakiyys/McDownloader/releases/latest).
+2. Drag **McDownloader** into your Applications folder.
+3. On first launch, **Control-click** the app and choose **Open**, then confirm.
+
+> McDownloader isn't notarized by Apple yet (that requires a paid developer account),
+> so macOS asks you to confirm once. Prefer the terminal?
+> `xattr -dr com.apple.quarantine /Applications/McDownloader.app`
+
+**Updating:** download the newest `.dmg` and replace the app. Click **Watch → Custom → Releases**
+on this repo to get notified when a new version is out.
+
+## Set up the browser extension
+
+1. Open `chrome://extensions` and turn on **Developer mode**.
+2. Click **Load unpacked** and pick the `Extension` folder from this repo.
+3. In McDownloader, open **Settings → Browser** and copy your token.
+4. Paste it into the extension's **Options** page. Done.
+
+## Under the hood
+
+Two proven engines, one interface:
+
+- **[aria2](https://aria2.github.io)** for HTTP, HTTPS, and FTP
+- **[libtorrent](https://www.libtorrent.org)**, the same engine behind qBittorrent, for BitTorrent
+
+Each engine runs in its own process, so if one hiccups, the app and your other downloads keep going.
+
+<details>
+<summary><b>Build from source</b></summary>
+
+Requires macOS 14+ and the Xcode command line tools.
 
 ```bash
 git clone https://github.com/zakiyys/McDownloader.git
-cd McDownloader/App
-swift build -c release
-```
+cd McDownloader
+swift build -c release --package-path App
 
-To assemble a full `.app` you also need the two engine binaries. They are built
-by the release workflow, or you can build them yourself:
-
-```bash
+# engines (or grab them from a release build)
 ./scripts/build-aria2-universal.sh "$PWD/vendor"
 ./scripts/build-libtorrent-universal.sh "$PWD/vendor"
 
+# package the .app
 BINARY="$(swift build -c release --package-path App --show-bin-path)/McDownloader"
-./scripts/package-app.sh \
-  --binary "$BINARY" --out dist \
+./scripts/package-app.sh --binary "$BINARY" --out dist \
   --aria2 vendor/aria2c --torrent-helper vendor/mcdownloader-torrentd
 ```
 
-## Browser extension
+</details>
 
-1. Open `chrome://extensions`, turn on **Developer mode**.
-2. Choose **Load unpacked** and select the `Extension` folder.
-3. Open McDownloader, go to **Settings → Browser**, and copy the token.
-4. Paste the token into the extension's **Options** and save.
+## FAQ
 
-The extension talks to the app on `127.0.0.1` only, authenticated by that token.
-Nothing is sent anywhere else.
+**Is this related to Internet Download Manager (IDM)?**
+No. McDownloader is an independent, open source app inspired by the same idea. It's not a port, crack, or repack of IDM.
 
-## How updates work
+**Is it free?**
+Yes, free and open source under GPL-3.0.
 
-Each GitHub release is a new tag (`v1.0.1`, `v1.0.2`, ...). Watch the repository
-to be notified. There is no auto-updater yet; download the new `.dmg` and replace
-the app.
+**Does it collect any data?**
+No. The browser extension only talks to the app on `127.0.0.1`, and there's no analytics.
 
 ## License
 
-GNU General Public License v3.0. See [LICENSE](LICENSE). This is required in part
-because aria2 is GPLv2 and is bundled with the app.
+[GPL-3.0](LICENSE). Built on the shoulders of aria2 and libtorrent.
 
-## Credits
+<div align="center">
 
-Built by [zakiyys](https://github.com/zakiyys). Engine work stands on aria2 and
-libtorrent.
+Made by [zakiyys](https://github.com/zakiyys) · If it saves you time, a ⭐ helps a lot
+
+</div>

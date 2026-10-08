@@ -124,9 +124,12 @@ choice, not an imported thin-stroke library (R-04).
 
 ## 10. App icon
 
-**Placeholder for now:** the wordmark `McD` set in the system font on a neutral rounded
-tile (`docs/branding/icon-placeholder.svg`), explicitly labelled as temporary. To be
-replaced by real artwork later (R-23: an honest placeholder, never disguised as final).
+**Defined:** a macOS squircle tile with a blue-to-indigo **progress ring** (75%)
+around a bold `M` whose final stroke ends in a **download arrowhead**
+(`docs/branding/icon.svg`, rendered to `assets/icon.png`). The single accent
+gradient matches the UI's "one accent for the active transfer" rule.
+The master vector lives in `docs/branding/icon.svg`; `scripts/make-icon.sh`
+builds `AppIcon.icns` from the PNG.
 
 ## 11. States (required)
 
