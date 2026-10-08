@@ -77,9 +77,9 @@ jobs:
             echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build (SwiftPM, release)
+      - name: Build (SwiftPM, release, universal)
         working-directory: App
-        run: swift build -c release
+        run: swift build -c release --arch arm64 --arch x86_64
 
       - name: Generate the app icon (placeholder)
         run: |
@@ -88,7 +88,7 @@ jobs:
 
       - name: Package .app
         run: |
-          BINARY="$(swift build -c release --package-path App --show-bin-path)/McDownloader"
+          BINARY="$(swift build -c release --arch arm64 --arch x86_64 --package-path App --show-bin-path)/McDownloader"
           chmod +x scripts/package-app.sh
           ./scripts/package-app.sh \
             --binary "$BINARY" \
