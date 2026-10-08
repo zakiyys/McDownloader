@@ -32,9 +32,17 @@ export VCPKG_DISABLE_METRICS=1
 build_arch() {
   local triplet="$1" arch="$2"
   echo "==== vcpkg dependencies ($triplet) ===="
-  "$VCPKG_ROOT/vcpkg" install "libtorrent:$triplet" \
-    --triplet "$triplet" \
-    --clean-after-build
+  if ! "$VCPKG_ROOT/vcpkg" install "libtorrent:$triplet" \
+        --triplet "$triplet" \
+        --clean-after-build; then
+    echo "==== vcpkg FAILED; dumping openssl build logs ===="
+    for f in "$VCPKG_ROOT"/buildtrees/openssl/*-err.log "$VCPKG_ROOT"/buildtrees/openssl/*-out.log; do
+      [[ -f "$f" ]] && { echo "----- $f -----"; tail -60 "$f"; }
+    done
+    echo "----- vcpkg issue body -----"
+    [[ -f "$VCPKG_ROOT/installed/vcpkg/issue_body.md" ]] && cat "$VCPKG_ROOT/installed/vcpkg/issue_body.md"
+    return 1
+  fi
 
   local build_dir="$WORK/build-$arch"
   rm -rf "$build_dir"
