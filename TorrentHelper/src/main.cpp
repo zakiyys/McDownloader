@@ -237,16 +237,14 @@ static std::string torrentId(const lt::torrent_handle& h) {
 
 static std::string stateFromStatus(const lt::torrent_status& st) {
     switch (st.state) {
-        case lt::torrent_status::queued_for_checking: return "queued";
         case lt::torrent_status::checking_files: return "checking";
         case lt::torrent_status::downloading_metadata: return "meta";
         case lt::torrent_status::downloading: return "downloading";
         case lt::torrent_status::finished: return "completed";
         case lt::torrent_status::seeding: return "seeding";
-        case lt::torrent_status::allocating: return "allocating";
         case lt::torrent_status::checking_resume_data: return "checking";
+        default: return "queued";
     }
-    return "queued";
 }
 
 // Sample the piece bitfield down to at most `cells` cells so the UI can draw a
@@ -258,7 +256,7 @@ static std::string piecesJson(const lt::torrent_status& st, int cells = 160) {
     int step = std::max(1, total / cells);
     bool first = true;
     for (int i = 0; i < total; i += step) {
-        bool done = st.pieces.get_bit(i);
+        bool done = st.pieces.get_bit(lt::piece_index_t(i));
         if (!first) out += ",";
         out += done ? "1" : "0";
         first = false;
@@ -311,14 +309,15 @@ static std::string detailJson(const lt::torrent_handle& h) {
         auto& storage = ti->files();
         bool first = true;
         for (int i = 0; i < storage.num_files(); ++i) {
+            lt::file_index_t fi(i);
             if (!first) files += ",";
             files += "{";
             files += jstr("index") + ":" + jnum(i) + ",";
-            files += jstr("path") + ":" + jstr(storage.file_path(i)) + ",";
-            files += jstr("length") + ":" + jnum(static_cast<int64_t>(storage.file_size(i))) + ",";
+            files += jstr("path") + ":" + jstr(storage.file_path(fi)) + ",";
+            files += jstr("length") + ":" + jnum(static_cast<int64_t>(storage.file_size(fi))) + ",";
             int64_t done = (static_cast<size_t>(i) < progress.size()) ? progress[i] : 0;
             files += jstr("completed") + ":" + jnum(done) + ",";
-            bool selected = h.file_priority(i) != lt::dont_download;
+            bool selected = h.file_priority(fi) != lt::dont_download;
             files += jstr("selected") + ":" + jbool(selected);
             files += "}";
             first = false;
@@ -360,8 +359,9 @@ static std::string detailJson(const lt::torrent_handle& h) {
             std::string message;
             bool working = false;
             if (!t.endpoints.empty()) {
-                message = t.endpoints.front().message;
-                working = !t.endpoints.front().info_hashes.empty();
+                const auto& ih = t.endpoints.front().info_hashes[lt::protocol_version::V1];
+                message = ih.message;
+                working = ih.last_error == lt::error_code();
             }
             trackers += "{";
             trackers += jstr("url") + ":" + jstr(t.url) + ",";
@@ -644,7 +644,8 @@ static void maintenanceLoop() {
                     ? static_cast<double>(st.all_time_upload) / static_cast<double>(st.all_time_download)
                     : 0.0;
                 bool ratioHit = g_engine.ratioLimit > 0 && ratio >= g_engine.ratioLimit;
-                bool timeHit = g_engine.timeLimitMinutes > 0 && st.active_time >= g_engine.timeLimitMinutes * 60;
+                bool timeHit = g_engine.timeLimitMinutes > 0 &&
+                    static_cast<int>(st.active_duration.count()) >= g_engine.timeLimitMinutes * 60;
                 if (!g_engine.seed || ratioHit || timeHit) {
                     h.pause();
                 }
