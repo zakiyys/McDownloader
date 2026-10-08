@@ -1,10 +1,11 @@
 #!/bin/bash
 # Builds a single static, universal (arm64 + x86_64) `aria2c`.
 #
-# aria2 itself is small; its dependencies are the work. We build zlib, expat,
-# c-ares and OpenSSL from source for each architecture, then aria2 against them,
-# then lipo the two binaries together. Everything runs on the GitHub macOS
-# runner, never on a user's machine.
+# aria2 itself is small; its dependencies are the work. We build zlib, expat and
+# c-ares from source for each architecture, then aria2 against them, then lipo
+# the two binaries together. TLS uses Apple's SecureTransport (--with-appletls),
+# so there is no OpenSSL to build and nothing to keep patched. Everything runs
+# on the GitHub macOS runner, never on a user's machine.
 #
 # Output: $OUT_DIR/aria2c  (universal)
 set -euo pipefail
@@ -12,7 +13,6 @@ set -euo pipefail
 OUT_DIR="${1:-$(pwd)/vendor}"
 WORK="${WORK_DIR:-$(pwd)/build-aria2}"
 ARIA2_VERSION="${ARIA2_VERSION:-1.37.0}"
-OPENSSL_VERSION="${OPENSSL_VERSION:-3.3.2}"
 
 ZLIB_VERSION=1.3.1
 EXPAT_VERSION=2.6.3
@@ -34,7 +34,6 @@ fetch "https://github.com/aria2/aria2/releases/download/release-${ARIA2_VERSION}
 fetch "https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz" "$WORK/zlib.tar.gz"
 fetch "https://github.com/libexpat/libexpat/releases/download/R_${EXPAT_VERSION//./_}/expat-${EXPAT_VERSION}.tar.gz" "$WORK/expat.tar.gz"
 fetch "https://github.com/c-ares/c-ares/releases/download/v${CARES_VERSION}/c-ares-${CARES_VERSION}.tar.gz" "$WORK/cares.tar.gz"
-fetch "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" "$WORK/openssl.tar.gz"
 
 for arch in "${ARCHS[@]}"; do
   PREFIX="$WORK/prefix-$arch"
@@ -44,10 +43,8 @@ for arch in "${ARCHS[@]}"; do
 
   if [[ "$arch" == "x86_64" ]]; then
     CONFIGURE_HOST="x86_64-apple-darwin"
-    OPENSSL_TARGET="darwin64-x86_64-cc"
   else
     CONFIGURE_HOST="aarch64-apple-darwin"
-    OPENSSL_TARGET="darwin64-arm64-cc"
   fi
   export CFLAGS="-arch $arch -O2 -mmacosx-version-min=14.0"
   export CXXFLAGS="-arch $arch -O2 -mmacosx-version-min=14.0"
@@ -65,16 +62,6 @@ for arch in "${ARCHS[@]}"; do
   tar xzf "$WORK/cares.tar.gz" -C "$BUILD"
   ( cd "$BUILD/c-ares-${CARES_VERSION}" && ./configure --disable-shared --enable-static --prefix="$PREFIX" --host="$CONFIGURE_HOST" && make -j"$(sysctl -n hw.ncpu)" && make install )
 
-  echo "==== openssl ($arch) ===="
-  tar xzf "$WORK/openssl.tar.gz" -C "$BUILD"
-  # OpenSSL's Configure wants options first and the target LAST.
-  ( cd "$BUILD/openssl-${OPENSSL_VERSION}" && \
-    perl ./Configure no-shared no-tests \
-      --prefix="$PREFIX" --openssldir="$PREFIX/ssl" \
-      "$OPENSSL_TARGET" && \
-    make -j"$(sysctl -n hw.ncpu)" && \
-    make install_sw )
-
   echo "==== aria2 ($arch) ===="
   tar xzf "$WORK/aria2.tar.gz" -C "$BUILD"
   ( cd "$BUILD/aria2-${ARIA2_VERSION}" && \
@@ -85,7 +72,8 @@ for arch in "${ARCHS[@]}"; do
       --disable-ldap \
       --disable-bittorrent \
       --without-gnutls \
-      --with-openssl \
+      --without-openssl \
+      --with-appletls \
       --with-libexpat \
       --without-libxml2 \
       --without-sqlite3 \
