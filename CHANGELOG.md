@@ -6,6 +6,20 @@ All notable changes to McDownloader are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Browser extension now connects through a Native Messaging host, so there is no
+  port to set and no token to copy. The extension ID is pinned with a `key`, so
+  it survives reinstalls and the connection keeps working.
+- A **Connect browser** button in Settings installs the native host for every
+  Chromium browser on the Mac and reveals the bundled extension folder.
+
+### Changed
+
+- The local HTTP bridge is now the fallback path, kept for browsers without the
+  host and for manual setups; it is folded into a **Manual bridge (advanced)**
+  section in Settings.
+
 ## [1.0.0] - 2026-10-08
 
 First release.

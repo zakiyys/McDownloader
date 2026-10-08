@@ -67,10 +67,17 @@ on this repo to get notified when a new version is out.
 
 ## Set up the browser extension
 
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and pick the `Extension` folder from this repo.
-3. In McDownloader, open **Settings → Browser** and copy your token.
-4. Paste it into the extension's **Options** page. Done.
+1. In McDownloader, open **Settings → Browser** and click **Connect browser**.
+   This installs the native host and opens the extension folder in Finder.
+2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**,
+   and pick the extension folder the app just revealed.
+
+That is the whole setup, once. After that the extension talks to the app on its
+own: no port to set, no token to copy. Reinstalling or updating the app keeps the
+connection working, because the extension ID is pinned.
+
+Prefer to wire it up by hand (or not on Chrome)? The same panel has a **Manual
+bridge** section with a port and token for the extension's Options page.
 
 ## Under the hood
 

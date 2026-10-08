@@ -38,6 +38,21 @@ jobs:
           codesign --verify --deep --verbose=2 dist/McDownloader.app || true
           file dist/McDownloader.app/Contents/MacOS/McDownloader
 
+      - name: Smoke-test the native host stdio framing
+        run: |
+          python3 - "dist/McDownloader.app/Contents/MacOS/mcdownloader-host" <<'PY'
+          import json, struct, subprocess, sys
+          p = subprocess.Popen([sys.argv[1]], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+          msg = json.dumps({"type": "ping"}).encode()
+          p.stdin.write(struct.pack("<I", len(msg)) + msg)
+          p.stdin.flush()
+          n = struct.unpack("<I", p.stdout.read(4))[0]
+          reply = json.loads(p.stdout.read(n))
+          assert reply.get("ok") is True and reply.get("host") == "mcdownloader-host", reply
+          print("native host handshake ok:", reply)
+          p.kill()
+          PY
+
   extension:
     name: Lint extension (Node)
     runs-on: ubuntu-latest

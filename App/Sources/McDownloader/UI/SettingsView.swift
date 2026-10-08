@@ -170,7 +170,7 @@ private struct BrowserSettings: View {
                 HStack {
                     Text("Transport")
                     Spacer()
-                    Text(nativeHostStatus == "Native host not installed." ? "Local bridge" : "Native host")
+                    Text(nativeHostInstalled ? "Native host" : "Local bridge")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
@@ -214,12 +214,17 @@ private struct BrowserSettings: View {
         }
     }
 
+    private var nativeHostInstalled: Bool {
+        !NativeHost.installedBrowsers().isEmpty
+    }
+
     private var nativeHostStatus: String {
         let installed = NativeHost.installedBrowsers()
         if installed.isEmpty {
-            return NativeHost.absentBrowsers().isEmpty
+            let absent = NativeHost.absentBrowsers()
+            return absent.isEmpty
                 ? "Native host not installed."
-                : "Native host not installed (found \(NativeHost.absentBrowsers().joined(separator: ", ")))."
+                : "Native host not installed (found \(absent.joined(separator: ", ")))."
         }
         return "Native host installed for \(installed.joined(separator: ", "))."
     }
