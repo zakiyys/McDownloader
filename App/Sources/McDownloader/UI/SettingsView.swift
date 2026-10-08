@@ -132,10 +132,57 @@ private struct BrowserSettings: View {
     @EnvironmentObject var app: AppState
     @EnvironmentObject var configStore: ConfigStore
     @State private var copied = false
+    @State private var connectMessage: String?
 
     var body: some View {
         Form {
-            Section("Browser bridge") {
+            Section("Browser extension") {
+                Text("Do this once. After that the extension talks to the app on its own: no port, no token.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Text("1.")
+                    Button("Connect browser") { connect() }
+                    Text("installs the native host and opens the extension folder in Finder.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("2.")
+                    Text("In the browser, open `chrome://extensions`, turn on Developer mode, click Load unpacked, and pick the extension folder.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let connectMessage {
+                    Text(connectMessage).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(nativeHostStatus).font(.caption).foregroundStyle(.secondary)
+                Text("If the browser was already open, quit and reopen it once.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Connection") {
+                HStack {
+                    Text("Transport")
+                    Spacer()
+                    Text(nativeHostStatus == "Native host not installed." ? "Local bridge" : "Native host")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    let info = app.bridgeInfo()
+                    Text(info.running ? "Listening on 127.0.0.1:\(info.port)" : "Not running")
+                        .foregroundStyle(info.running ? Theme.success : .secondary)
+                }
+            }
+
+            DisclosureGroup("Manual bridge (advanced)") {
                 Toggle("Accept downloads from the browser extension", isOn: $configStore.config.browserBridgeEnabled)
                     .onChange(of: configStore.config.browserBridgeEnabled) { _, _ in app.restartBridge() }
                 HStack {
@@ -146,16 +193,7 @@ private struct BrowserSettings: View {
                         .multilineTextAlignment(.trailing)
                         .onSubmit { app.restartBridge() }
                 }
-                HStack {
-                    Text("Status")
-                    Spacer()
-                    let info = app.bridgeInfo()
-                    Text(info.running ? "Listening on 127.0.0.1:\(info.port)" : "Not running")
-                        .foregroundStyle(info.running ? Theme.success : .secondary)
-                }
-            }
-            Section("Extension setup") {
-                Text("Paste this token into the McDownloader extension's options:")
+                Text("Paste this token into the extension's Options page:")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 HStack {
@@ -173,6 +211,26 @@ private struct BrowserSettings: View {
                     }
                 }
             }
+        }
+    }
+
+    private var nativeHostStatus: String {
+        let installed = NativeHost.installedBrowsers()
+        if installed.isEmpty {
+            return NativeHost.absentBrowsers().isEmpty
+                ? "Native host not installed."
+                : "Native host not installed (found \(NativeHost.absentBrowsers().joined(separator: ", ")))."
+        }
+        return "Native host installed for \(installed.joined(separator: ", "))."
+    }
+
+    private func connect() {
+        let written = NativeHost.install()
+        NativeHost.revealExtensionAndOpenBrowser()
+        if written.isEmpty {
+            connectMessage = "No Chromium browser found to configure. The manual bridge below still works."
+        } else {
+            connectMessage = "Done. Now load the extension in the browser, once."
         }
     }
 }

@@ -24,10 +24,13 @@ jobs:
 
       - name: Package .app (no engines)
         run: |
-          BINARY="$(swift build -c release --package-path App --show-bin-path)/McDownloader"
+          BIN_PATH="$(swift build -c release --package-path App --show-bin-path)"
           chmod +x scripts/package-app.sh
-          ./scripts/package-app.sh --binary "$BINARY" --out dist --version 0.0.0-ci --commit "${GITHUB_SHA::7}"
+          ./scripts/package-app.sh --binary "$BIN_PATH/McDownloader" --host "$BIN_PATH/mcdownloader-host" \
+            --out dist --version 0.0.0-ci --commit "${GITHUB_SHA::7}"
           test -x "dist/McDownloader.app/Contents/MacOS/McDownloader"
+          test -x "dist/McDownloader.app/Contents/MacOS/mcdownloader-host"
+          test -d "dist/McDownloader.app/Contents/Resources/extension"
           /usr/libexec/PlistBuddy -c "Print" dist/McDownloader.app/Contents/Info.plist | head -5
 
       - name: Verify the binary is universal-ready and signed
@@ -50,6 +53,21 @@ jobs:
           node --check Extension/options.js
       - name: Validate the manifest
         run: node -e "JSON.parse(require('fs').readFileSync('Extension/manifest.json','utf8')); console.log('manifest ok')"
+      - name: The pinned extension ID matches its key (and the app's copy)
+        run: |
+          node -e '
+          const fs = require("fs"), crypto = require("crypto");
+          const manifest = JSON.parse(fs.readFileSync("Extension/manifest.json", "utf8"));
+          if (!manifest.key) { console.error("manifest.json has no key"); process.exit(1); }
+          if (!manifest.permissions.includes("nativeMessaging")) { console.error("nativeMessaging permission missing"); process.exit(1); }
+          const der = Buffer.from(manifest.key, "base64");
+          const id = [...crypto.createHash("sha256").update(der).digest().slice(0, 16)]
+            .map(b => String.fromCharCode(97 + (b >> 4)) + String.fromCharCode(97 + (b & 15))).join("");
+          const swift = fs.readFileSync("App/Sources/McDownloader/Integration/NativeHost.swift", "utf8");
+          const locked = (swift.match(/extensionID\s*=\s*"([a-p]{32})"/) || [])[1];
+          if (id !== locked) { console.error(`extension id mismatch: key gives ${id}, app pins ${locked}`); process.exit(1); }
+          console.log("extension id ok:", id);
+          '
 
   shellcheck:
     name: Lint scripts

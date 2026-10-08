@@ -7,7 +7,9 @@ async function refreshStatus() {
   const response = await chrome.runtime.sendMessage({ type: "status" });
   if (response && response.running) {
     statusDot.classList.add("ok");
-    statusText.textContent = `Connected on port ${response.port}`;
+    statusText.textContent = response.port
+      ? `Connected on port ${response.port}`
+      : "Connected";
   } else {
     statusDot.classList.remove("ok");
     statusText.textContent = "App not running";

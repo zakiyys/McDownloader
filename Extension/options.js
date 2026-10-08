@@ -30,9 +30,15 @@ document.getElementById("settings").addEventListener("submit", async (event) => 
 document.getElementById("test").addEventListener("click", async () => {
   status.textContent = "Testing…";
   const response = await chrome.runtime.sendMessage({ type: "test" });
-  status.textContent = response && response.running
-    ? `Connected on port ${response.port}.`
-    : "No response. Is the app running and is the token correct?";
+  if (response && response.running) {
+    status.textContent =
+      response.transport === "native"
+        ? "Connected to the app (native host)."
+        : `Connected to the app on port ${response.port}.`;
+  } else {
+    status.textContent =
+      "No response. Is the app running? If you are on the manual bridge, check the port and token.";
+  }
 });
 
 load();

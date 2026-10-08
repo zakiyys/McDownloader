@@ -7,8 +7,12 @@
 //      current page or a clicked link, so an expired transfer can be re-seeded
 //      with a fresh address.
 //
-// It talks to the app over 127.0.0.1 only, authenticated with a token the user
-// copies from the app's Settings, so no native messaging host is required.
+// It talks to the app over a Native Messaging host: the browser launches our
+// host program, which forwards to the app's local bridge. There is no port to
+// set and no token to copy. If the host is not installed (older setups), it
+// falls back to the local HTTP bridge using a port and token from Options.
+
+const HOST_NAME = "io.github.zakiyys.mcdownloader";
 
 const DEFAULTS = { port: 6847, token: "", intercept: true, enabled: true };
 
@@ -21,6 +25,40 @@ function endpoint(config) {
   return `http://127.0.0.1:${config.port}`;
 }
 
+// 1. Native messaging (preferred) -------------------------------------------
+
+/** Sends one message to the app through the native host. */
+function sendViaNative(payload) {
+  return new Promise((resolve) => {
+    let port;
+    try {
+      port = chrome.runtime.connectNative(HOST_NAME);
+    } catch (error) {
+      resolve({ ok: false, reason: "native-unavailable" });
+      return;
+    }
+
+    const done = (result) => {
+      try { port.disconnect(); } catch { /* already gone */ }
+      resolve(result);
+    };
+
+    port.onMessage.addListener((response) => done(response || { ok: true }));
+    port.onDisconnect.addListener(() => {
+      const lastError = chrome.runtime.lastError;
+      if (lastError) done({ ok: false, reason: "native-unavailable" });
+    });
+
+    try {
+      port.postMessage(payload);
+    } catch (error) {
+      done({ ok: false, reason: "native-unavailable" });
+    }
+  });
+}
+
+// 2. Local HTTP bridge (fallback) -------------------------------------------
+
 async function appStatus(config) {
   try {
     const response = await fetch(`${endpoint(config)}/ping`, { cache: "no-store" });
@@ -30,7 +68,7 @@ async function appStatus(config) {
   }
 }
 
-async function sendToApp(payload, config) {
+async function sendViaHTTP(payload, config) {
   const response = await fetch(`${endpoint(config)}/add`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-McDownloader-Token": config.token },
@@ -76,28 +114,40 @@ async function notify(message) {
   }
 }
 
+/** Is the app reachable, natively or over the bridge? */
+async function isAppRunning(config) {
+  const native = await sendViaNative({ type: "ping" });
+  if (native.ok) return { running: true, transport: "native" };
+  return { running: await appStatus(config), transport: "http" };
+}
+
 /** Sends a link to the app, attaching cookies and referer. */
 async function handOff(url, referer) {
   const config = await getConfig();
   if (!config.enabled) return { ok: false, reason: "disabled" };
+
+  const payload = {
+    url,
+    referer: referer || "",
+    cookie: await cookieHeaderFor(url),
+    filename: filenameFromUrl(url)
+  };
+
+  // Prefer the native host; fall back to the HTTP bridge.
+  const native = await sendViaNative(payload);
+  if (native.ok) return { ok: true, transport: "native" };
+  if (native.reason && native.reason !== "native-unavailable") return native;
+
   if (!(await appStatus(config))) return { ok: false, reason: "app-not-running" };
   try {
-    await sendToApp(
-      {
-        url,
-        referer: referer || "",
-        cookie: await cookieHeaderFor(url),
-        filename: filenameFromUrl(url)
-      },
-      config
-    );
-    return { ok: true };
+    await sendViaHTTP(payload, config);
+    return { ok: true, transport: "http" };
   } catch (error) {
     return { ok: false, reason: error.message };
   }
 }
 
-// 1. Download interception ---------------------------------------------------
+// 3. Download interception ---------------------------------------------------
 
 chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   (async () => {
@@ -118,7 +168,7 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   return true;
 });
 
-// 2. Context menus -----------------------------------------------------------
+// 4. Context menus -----------------------------------------------------------
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -151,14 +201,19 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   }
 });
 
-// 3. Messages from the popup -------------------------------------------------
+// 5. Messages from the popup -------------------------------------------------
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   (async () => {
     switch (message.type) {
       case "status": {
         const config = await getConfig();
-        sendResponse({ running: await appStatus(config), port: config.port });
+        const state = await isAppRunning(config);
+        sendResponse({
+          running: state.running,
+          transport: state.transport,
+          port: state.transport === "http" ? config.port : null
+        });
         break;
       }
       case "add": {
@@ -168,7 +223,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }
       case "test": {
         const config = await getConfig();
-        sendResponse({ running: await appStatus(config), port: config.port });
+        const state = await isAppRunning(config);
+        sendResponse({ running: state.running, transport: state.transport, port: config.port });
         break;
       }
       default:

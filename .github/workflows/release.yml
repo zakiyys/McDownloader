@@ -88,10 +88,11 @@ jobs:
 
       - name: Package .app
         run: |
-          BINARY="$(swift build -c release --arch arm64 --arch x86_64 --package-path App --show-bin-path)/McDownloader"
+          BIN_PATH="$(swift build -c release --arch arm64 --arch x86_64 --package-path App --show-bin-path)"
           chmod +x scripts/package-app.sh
           ./scripts/package-app.sh \
-            --binary "$BINARY" \
+            --binary "$BIN_PATH/McDownloader" \
+            --host "$BIN_PATH/mcdownloader-host" \
             --out dist \
             --aria2 vendor/aria2c \
             --torrent-helper vendor/mcdownloader-torrentd \

@@ -3,16 +3,19 @@
 #
 # Usage:
 #   scripts/package-app.sh --binary <path> --out <dir> [--aria2 <path>] \
-#       [--torrent-helper <path>] [--icon <AppIcon.icns>] [--version 1.0.0]
+#       [--torrent-helper <path>] [--host <path>] [--icon <AppIcon.icns>] [--version 1.0.0]
 #
-# The engines are copied into Contents/Resources, which is what EngineLocator
-# searches first at runtime.
+# The engines and the native messaging host are copied into Contents/ (Resources
+# for the engines, MacOS for the host), which is what EngineLocator and the
+# browser expect at runtime. The browser extension is copied into
+# Contents/Resources/extension so the app can open it for the user.
 set -euo pipefail
 
 BINARY=""
 OUT="dist"
 ARIA2=""
 HELPER=""
+HOST=""
 ICON=""
 VERSION="1.0.0"
 COMMIT="unknown"
@@ -23,6 +26,7 @@ while [[ $# -gt 0 ]]; do
     --out) OUT="$2"; shift 2 ;;
     --aria2) ARIA2="$2"; shift 2 ;;
     --torrent-helper) HELPER="$2"; shift 2 ;;
+    --host) HOST="$2"; shift 2 ;;
     --icon) ICON="$2"; shift 2 ;;
     --version) VERSION="$2"; shift 2 ;;
     --commit) COMMIT="$2"; shift 2 ;;
@@ -62,6 +66,19 @@ fi
 if [[ -n "$HELPER" && -f "$HELPER" ]]; then
   cp "$HELPER" "$RES/mcdownloader-torrentd"
   chmod +x "$RES/mcdownloader-torrentd"
+fi
+
+# The native messaging host lives next to the main binary: the browser manifest
+# points at Contents/MacOS/mcdownloader-host.
+if [[ -n "$HOST" && -f "$HOST" ]]; then
+  cp "$HOST" "$MACOS/mcdownloader-host"
+  chmod +x "$MACOS/mcdownloader-host"
+fi
+
+# Ship the extension inside the app so "Connect browser" can reveal it.
+if [[ -d "$REPO_ROOT/Extension" ]]; then
+  rm -rf "$RES/extension"
+  cp -R "$REPO_ROOT/Extension" "$RES/extension"
 fi
 
 if [[ -n "$ICON" && -f "$ICON" ]]; then

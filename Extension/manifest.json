@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "McDownloader",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hand downloads over to the McDownloader app, with cookies and referer, and refresh expired links.",
-  "permissions": ["downloads", "cookies", "storage", "contextMenus", "activeTab", "notifications"],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzg1Vdp2RWYr6XdVGlUeSMp0IQH17SXkEHJogJ0QEoUrHXteoFVIsO52UgE57lBaB9RVF8BsBT2Bv2sPhnC+yF3RT1Ndjbh50z0jNZUevdyX84ZacWEMjaHjQTpwgo396JOAm9hDEEmUr+JcyCDGxvckguYHh1hQ2cu1fK2TD7x+csAPiS1lqyFCVTAFlJ+2174bkIW2jF6bmGp3tB1kzp7jUaL3mFvlFzZFMN1qrKFGwByM4devgtPT/dzDzzDeCpOLPiJmbgfhUDNZNYI0P+SWwgTbGAxdWfCCVfhd33OPxvYc8bhfnEffXj/fN9+58Il+eSuGncMxS5UzgTsPtMwIDAQAB",
+  "permissions": ["downloads", "cookies", "storage", "contextMenus", "activeTab", "notifications", "nativeMessaging"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",
