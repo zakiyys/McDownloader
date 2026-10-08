@@ -2,8 +2,9 @@ import Foundation
 
 /// Manages the optional yt-dlp and ffmpeg tools. They are downloaded on first
 /// use into Application Support, never bundled, so the app stays small. yt-dlp
-/// ships as a self-contained binary; ffmpeg is fetched from a well-known
-/// static build. Both are user-visible and can be updated from Settings.
+/// ships as a self-contained binary, so installation is a single download.
+/// Observable and main-actor bound because it drives SwiftUI directly.
+@MainActor
 final class ToolManager: ObservableObject {
     @Published private(set) var ytDlpVersion: String?
     @Published private(set) var ffmpegAvailable = false
@@ -35,10 +36,14 @@ final class ToolManager: ObservableObject {
         return text?.isEmpty == false ? text : nil
     }
 
-    /// Installs yt-dlp if missing. Network only, no system changes.
+    /// Installs or updates yt-dlp. Network only, no system changes.
     func installOrUpdateYtDlp() async {
-        await MainActor.run { isInstalling = true }
-        defer { Task { await MainActor.run { self.refreshState() } } }
+        isInstalling = true
+        lastError = nil
+        defer {
+            isInstalling = false
+            refreshState()
+        }
         do {
             try AppPaths.ensureDirectories()
             let tools = EngineLocator.toolsDir()
@@ -54,10 +59,9 @@ final class ToolManager: ObservableObject {
             }
             try FileManager.default.moveItem(at: temp, to: destination)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destination.path)
-            await MainActor.run { self.isInstalling = false; self.lastError = nil }
             Log.info("yt-dlp installed at \(destination.path)")
         } catch {
-            await MainActor.run { self.isInstalling = false; self.lastError = error.localizedDescription }
+            lastError = error.localizedDescription
             Log.error("yt-dlp install failed: \(error.localizedDescription)")
         }
     }

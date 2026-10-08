@@ -73,7 +73,8 @@ final class DownloadStore: ObservableObject {
     private func startPolling() {
         stopPolling()
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.refresh() }
+            guard let self else { return }
+            Task { @MainActor in await self.refresh() }
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer

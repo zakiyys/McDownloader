@@ -34,6 +34,7 @@ struct MainWindow: View {
             AddDownloadSheet()
                 .environmentObject(app)
                 .environmentObject(configStore)
+                .environmentObject(app.tools)
         }
         .onDrop(of: [.fileURL, .url, .text], isTargeted: nil) { providers in
             handleDrop(providers)
