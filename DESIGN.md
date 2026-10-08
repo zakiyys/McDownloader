@@ -131,6 +131,14 @@ gradient matches the UI's "one accent for the active transfer" rule.
 The master vector lives in `docs/branding/icon.svg`; `scripts/make-icon.sh`
 builds `AppIcon.icns` from the PNG.
 
+**Paw mark:** a second, secondary motif (`docs/branding/paw-mark-light.svg`
+and `paw-mark-dark.svg`), debossed in the originals. In the app it is drawn as a
+tintable vector (`PawMark.swift`), fused from the same six shapes so it stays
+crisp at any size and needs no asset. It sits once, centred and quiet, at the
+foot of the sidebar above the engine line: the app's signature, deliberately
+lower emphasis than every row so it is never mistaken for a control or a status
+light (R-31). It is not tinted by state; the engine dot carries that.
+
 ## 11. States (required)
 
 Every data view ships empty / loading / error, and each names the **cause** and the

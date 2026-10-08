@@ -44,8 +44,19 @@ struct SidebarView: View {
         }
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom) {
-            EngineStatusView()
-                .padding(8)
+            VStack(spacing: 0) {
+                // Identity motif: the Miaw paw sits as a quiet signature at the
+                // foot of the sidebar, echoing the app icon. Neutral and low
+                // emphasis on purpose, so it never competes with the engine
+                // state dot beneath it (DESIGN.md §10, R-31).
+                PawMark(size: 26)
+                    .padding(.top, 4)
+                    .padding(.bottom, 10)
+                    .help("McDownloader")
+                Divider()
+                EngineStatusView()
+                    .padding(8)
+            }
         }
     }
 
