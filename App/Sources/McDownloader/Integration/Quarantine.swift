@@ -7,7 +7,6 @@ import Foundation
 enum Quarantine {
     static func markQuarantined(_ path: String, sourceURL: String?) {
         guard FileManager.default.fileExists(atPath: path) else { return }
-        let host = sourceURL.flatMap { URL(string: $0)?.host } ?? "McDownloader"
         let stamp = Int(Date().timeIntervalSince1970)
         // Format: flags;timestamp;agent;uuid
         let value = "0081;\(String(stamp, radix: 16));McDownloader;\(UUID().uuidString)"

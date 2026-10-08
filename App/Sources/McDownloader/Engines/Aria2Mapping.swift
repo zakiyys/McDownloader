@@ -9,7 +9,6 @@ enum Aria2Mapping {
         let total = raw.int64("totalLength") ?? 0
         let completed = raw.int64("completedLength") ?? 0
         let downloadSpeed = raw.int64("downloadSpeed") ?? 0
-        let uploadSpeed = raw.int64("uploadSpeed") ?? 0
         let connections = raw.int("connections") ?? 0
 
         let files = raw.array("files") ?? []

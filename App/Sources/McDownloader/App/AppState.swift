@@ -18,6 +18,7 @@ final class AppState: ObservableObject {
 
     private var bridge: BrowserBridge?
     private var started = false
+    private var urlObserver: NSObjectProtocol?
 
     struct Banner: Identifiable, Equatable {
         enum Kind { case info, error }
@@ -43,6 +44,8 @@ final class AppState: ObservableObject {
     func shutdown() {
         store.stopEngines()
         bridge?.stop()
+        if let urlObserver { NotificationCenter.default.removeObserver(urlObserver) }
+        urlObserver = nil
     }
 
     // MARK: Browser bridge
@@ -75,10 +78,12 @@ final class AppState: ObservableObject {
     // MARK: URL / file intake
 
     private func observeURLs() {
-        NotificationCenter.default.addObserver(forName: .mcOpenURL, object: nil, queue: .main) { [weak self] notification in
-            guard let url = notification.object as? URL else { return }
-            Task { @MainActor in await self?.handleIncoming(url: url) }
+        let center = NotificationCenter.default
+        let observer = center.addObserver(forName: .mcOpenURL, object: nil, queue: .main) { [weak self] notification in
+            guard let self, let url = notification.object as? URL else { return }
+            Task { @MainActor in await self.handleIncoming(url: url) }
         }
+        urlObserver = observer
     }
 
     func handleIncoming(url: URL) async {

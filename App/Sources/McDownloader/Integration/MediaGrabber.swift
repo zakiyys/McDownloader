@@ -23,7 +23,6 @@ final class MediaGrabber {
             guard let formatID = format["format_id"] as? String else { return nil }
             let ext = format["ext"] as? String ?? ""
             let vcodec = format["vcodec"] as? String ?? ""
-            let acodec = format["acodec"] as? String ?? ""
             let height = (format["height"] as? NSNumber)?.intValue
             let abr = (format["abr"] as? NSNumber)?.intValue
             let isAudioOnly = vcodec == "none"

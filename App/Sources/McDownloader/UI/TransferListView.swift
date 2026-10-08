@@ -119,7 +119,7 @@ struct TransferRow: View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: Theme.symbol(for: transfer))
                 .font(.title3)
-                .foregroundStyle(Theme.tint(for: transfer))
+                .foregroundStyle(Theme.tint(for: transfer.state))
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -200,7 +200,7 @@ struct ProgressCell: View {
                     .fill(Color(nsColor: .quaternaryLabelColor))
                     .frame(width: 160, height: 6)
                 Capsule()
-                    .fill(Theme.tint(for: transfer))
+                    .fill(Theme.tint(for: transfer.state))
                     .frame(width: max(2, 160 * transfer.progress), height: 6)
             }
             .frame(width: 160, height: 6)

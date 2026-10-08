@@ -42,7 +42,7 @@ struct StateBadge: View {
             Text(transfer.state.label)
         }
         .font(.caption)
-        .foregroundStyle(Theme.tint(for: transfer))
+        .foregroundStyle(Theme.tint(for: transfer.state))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(transfer.name), \(transfer.state.label)")
     }
