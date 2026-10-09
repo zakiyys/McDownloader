@@ -6,6 +6,34 @@ All notable changes to McDownloader are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-09
+
+### Fixed
+
+- **The download engine no longer fails to start** ("Download engine is not
+  responding"). The app passed `--bt-enabled` and `--follow-torrent` to aria2,
+  but the bundled aria2 is built `--disable-bittorrent`, which compiles those
+  options out. aria2 aborted on the unknown option before opening its RPC port.
+  Both flags are gone; BitTorrent was always handled by the separate helper, so
+  behaviour is unchanged.
+- A fresh install now works: aria2 aborts when `--input-file` names a session
+  file that does not exist yet, so the app creates an empty session on launch.
+- Engine startup failures are no longer silent: aria2's and the helper's stderr
+  are kept, and a process that dies during startup reports its exit status and
+  the last stderr line instead of a bare timeout.
+- Settings: the Bandwidth, Torrents and Browser (Manual bridge) tabs no longer
+  push their labels and controls past the window edge. Each tab scrolls, long
+  text wraps instead of clipping, and the window has a comfortable minimum size.
+- Release builds sign each engine and the native host explicitly instead of
+  relying on `codesign --deep`, which left the Intel slice of the universal
+  engines unsigned.
+
+### Added
+
+- CI guard: the release build now fails if the app passes an aria2 option the
+  bundled aria2 does not understand, and verifies every architecture of the
+  engines and host is signed.
+
 ## [1.1.0] - 2026-10-08
 
 ### Added

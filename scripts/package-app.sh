@@ -85,8 +85,18 @@ if [[ -n "$ICON" && -f "$ICON" ]]; then
   cp "$ICON" "$RES/AppIcon.icns"
 fi
 
-# Ad-hoc sign so the app launches on the build machine and on any Mac after the
-# user clears quarantine. Not a Developer ID signature; notarization is separate.
-codesign --force --deep --sign - "$APP" 2>/dev/null || echo "warning: ad-hoc codesign failed"
+# Sign inside-out. `codesign --deep` on a universal binary can sign only the
+# slice matching the build machine (arm64 on CI), leaving the Intel slice with no
+# signature at all. Sign each engine and the host explicitly first (an explicit
+# sign covers every slice), then seal the bundle WITHOUT --deep so the seal does
+# not re-touch the engines.
+#
+# Ad-hoc signing only: this lets the app launch on the build machine and on any
+# Mac after the user clears quarantine. Notarization is a separate step.
+SIGN=(--force --sign -)
+if [[ -f "$RES/aria2c" ]]; then codesign "${SIGN[@]}" "$RES/aria2c" 2>/dev/null || echo "warning: codesign aria2c failed"; fi
+if [[ -f "$RES/mcdownloader-torrentd" ]]; then codesign "${SIGN[@]}" "$RES/mcdownloader-torrentd" 2>/dev/null || echo "warning: codesign torrent helper failed"; fi
+if [[ -f "$MACOS/mcdownloader-host" ]]; then codesign "${SIGN[@]}" "$MACOS/mcdownloader-host" 2>/dev/null || echo "warning: codesign host failed"; fi
+codesign "${SIGN[@]}" "$APP" 2>/dev/null || echo "warning: ad-hoc codesign failed"
 
 echo "built $APP"

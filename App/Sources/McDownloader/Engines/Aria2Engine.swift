@@ -19,6 +19,9 @@ final class Aria2Engine {
 
     func start(config: AppConfig) async throws {
         try AppPaths.ensureDirectories()
+        // aria2 aborts at startup when --input-file points at a file that does
+        // not exist yet, so seed an empty session on a fresh install.
+        AppPaths.ensureSessionFile()
         guard let binary = EngineLocator.aria2c() else {
             throw EngineError.notRunning
         }
@@ -27,13 +30,15 @@ final class Aria2Engine {
         let proc = Process()
         proc.executableURL = binary
         proc.arguments = arguments(config: config)
-        proc.terminationHandler = { [weak self] _ in
+        proc.terminationHandler = { [weak self] finished in
             self?.isRunning = false
-            Log.error("aria2c exited")
+            Log.error("aria2c exited (status \(finished.terminationStatus))")
         }
-        // Keep aria2's own stdout quiet; its log file is the record.
+        // aria2 logs to --log once it is up, but a bad flag or a missing
+        // directory makes it die before the log file exists. Keep its stderr so
+        // those failures are not silent.
         proc.standardOutput = FileHandle.nullDevice
-        proc.standardError = FileHandle.nullDevice
+        proc.standardError = AppPaths.engineStderrHandle() ?? FileHandle.nullDevice
 
         do {
             try proc.run()
@@ -66,8 +71,6 @@ final class Aria2Engine {
             "--rpc-allow-origin-all=true",
             "--no-conf=true",
             "--continue=true",
-            "--bt-enabled=false",
-            "--follow-torrent=false",
             "--max-concurrent-downloads=5",
             "--split=\(max(1, config.splitCount))",
             "--max-connection-per-server=\(max(1, config.maxConnectionsPerServer))",
@@ -93,6 +96,14 @@ final class Aria2Engine {
     private func waitForReady() async throws {
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
+            // If the process already died, retrying the RPC is pointless: say why.
+            if let process, !process.isRunning {
+                let detail = AppPaths.engineStderrTail()
+                throw EngineError.unreachable(
+                    "aria2c exited during startup (status \(process.terminationStatus))"
+                    + (detail.map { ": \($0)" } ?? "")
+                )
+            }
             do {
                 _ = try await rpc.call("aria2.getVersion")
                 return

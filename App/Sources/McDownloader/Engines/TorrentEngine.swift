@@ -36,12 +36,12 @@ final class TorrentEngine {
             "--time-limit=\(config.seedingTimeLimitMinutes)",
             "--listen-port=6881"
         ]
-        proc.terminationHandler = { [weak self] _ in
+        proc.terminationHandler = { [weak self] finished in
             self?.isRunning = false
-            Log.error("torrent helper exited")
+            Log.error("torrent helper exited (status \(finished.terminationStatus))")
         }
         proc.standardOutput = FileHandle.nullDevice
-        proc.standardError = FileHandle.nullDevice
+        proc.standardError = AppPaths.engineStderrHandle(named: "torrentd") ?? FileHandle.nullDevice
 
         do {
             try proc.run()

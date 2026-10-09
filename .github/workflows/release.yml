@@ -100,6 +100,30 @@ jobs:
             --version "${{ steps.version.outputs.value }}" \
             --commit "${GITHUB_SHA::7}"
 
+      - name: Verify the bundled aria2 understands every option the app passes
+        # The bundled aria2 is built --disable-bittorrent, so BitTorrent-only
+        # options are compiled out. Passing one makes aria2 abort at startup,
+        # which the user sees as "engine is not responding". Fail the build
+        # instead of shipping that.
+        run: |
+          chmod +x scripts/check-aria2-options.sh
+          ./scripts/check-aria2-options.sh vendor/aria2c
+
+      - name: Verify every slice of the engines and host is signed
+        # A universal binary signed with `codesign --deep` can end up with only
+        # the build machine's slice signed, which macOS rejects on the other
+        # architecture. Verify each engine explicitly so that cannot ship.
+        run: |
+          set -e
+          for f in \
+            "dist/McDownloader.app/Contents/Resources/aria2c" \
+            "dist/McDownloader.app/Contents/Resources/mcdownloader-torrentd" \
+            "dist/McDownloader.app/Contents/MacOS/mcdownloader-host" \
+            "dist/McDownloader.app/Contents/MacOS/McDownloader"; do
+            echo "verifying $f"
+            codesign --verify --strict --all-architectures --verbose=2 "$f"
+          done
+
       - name: Bundle the browser extension
         run: |
           mkdir -p dist/extension
