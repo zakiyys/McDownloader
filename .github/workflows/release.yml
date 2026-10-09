@@ -105,7 +105,11 @@ jobs:
         # options are compiled out. Passing one makes aria2 abort at startup,
         # which the user sees as "engine is not responding". Fail the build
         # instead of shipping that.
+        #
+        # actions/download-artifact does not preserve the executable bit, so
+        # restore it before running the binary's --help.
         run: |
+          chmod +x vendor/aria2c
           chmod +x scripts/check-aria2-options.sh
           ./scripts/check-aria2-options.sh vendor/aria2c
 
